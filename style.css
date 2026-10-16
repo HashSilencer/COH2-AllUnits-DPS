@@ -1,0 +1,186 @@
+/* One face for the whole site, the menu buttons' (the browser default serif read smaller). */
+body, button, input, select { font-family: Arial, Helvetica, sans-serif; }
+
+dl {
+  
+  overflow: hidden;
+  padding: 0;
+  margin: 0
+}
+
+dt {
+  float: left;
+  width: 55%;
+  /* adjust the width; make sure the total of both is 100% */
+  padding: 0;
+  margin: 0
+}
+dd {
+  float: right;
+  width: 45%;
+  /* adjust the width; make sure the total of both is 100% */
+  padding: 0;
+  margin: 0
+}
+
+.statdiv {
+	vertical-align:top;
+	width: 320px;
+	display: inline-block;
+}
+
+.astatdiv {
+	width: 640px;
+	display: inline-block;
+}
+
+.unitlist {
+   display: none;
+}
+
+.content {
+}
+
+.curve_chart {
+	width: 90%;
+}
+
+.dropbtn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 16px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.topmenu {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 200px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown-content a:hover {background-color: #f1f1f1}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+.dropdown:hover .dropbtn {
+    background-color: #3e8e41;
+}
+
+div.accordion {
+    background-color: #eee;
+    color: #444;
+    cursor: pointer;
+    padding: 4px;
+    width: 80%;
+    border: 1px solid #000000;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+    transition: 0.1s;
+}
+
+div.accordion a {
+	color: black;
+    display: block;
+}
+
+div.accordion.active, button.accordion:hover {
+    background-color: #ddd;
+}
+
+div.accordion:after {
+    color: #777;
+    font-weight: bold;
+    float: right;
+    margin-left: 5px;
+}
+
+div.panel {
+    padding: 0 4px;
+    background-color: white;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.1s ease-out;
+}
+/* Temporary modifier variants (modifiers.js) */
+.modpanel {
+    margin-top: 16px;
+    font-size: 16px;
+    padding: 8px;
+    width: 80%;
+    border: 1px solid #000000;
+    background-color: #f6f6f6;
+}
+.modpanel select, .modpanel input, .modpanel button {
+    margin: 2px 4px 2px 0;
+    font-size: 16px;
+}
+.modpanel input[type=number] { width: 90px; }
+.modrow { margin: 2px 0; }
+button.modcreate { background-color: #4CAF50; color: white; border: none; padding: 4px 12px; cursor: pointer; }
+button.modremove { float: right; font-size: 12px; }
+.vetgroup { float: right; font-size: 13px; font-weight: normal; margin-left: 8px; }
+h3 .vetgroup { float: none; }
+button.vetbtn { font-size: 12px; padding: 0 6px; margin-left: 2px; cursor: pointer; border: 1px solid #888; background-color: #fff; }
+button.vetbtn.active { background-color: #4CAF50; color: white; border-color: #4CAF50; }
+div.accordion { display: flex; align-items: center; }
+div.accordion > a { flex: 1; }
+div.accordion > .vetgroup, div.accordion > button.modremove { float: none; flex: none; }
+
+.modhead { margin-bottom: 4px; }
+.linetoggle { margin: 0 6px 0 4px; font-size: 16px; cursor: pointer; white-space: nowrap; }
+.modrow.off { opacity: 0.5; }
+
+/* Pages from site_data.js (pages.js) */
+.upgrades { margin: 4px 0 8px 0; }
+label.upgrade { display: inline-block; margin: 2px 12px 2px 0; padding: 2px 6px; border: 1px solid #ccc; cursor: pointer; font-size: 14px; }
+label.upgrade.on { background-color: #e8f5e9; border-color: #4CAF50; }
+span.wname { color: #888; font-size: 12px; margin-left: 6px; }
+#generated { color: #888; font-size: 12px; }
+
+/* Bonuses on the shown weapon (pages.js renderBonuses) */
+.bonushead { font-weight: bold; margin: 6px 0 2px 0; }
+table.bonuses { border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+table.bonuses td { border: 1px solid #ddd; padding: 2px 8px; }
+table.bonuses tr.total td { font-weight: bold; background: #f4f4f4; }
+
+/* Comparison slots (pages.js renderSlotPanel) */
+.slot { border-left: 6px solid #999; padding: 2px 6px; margin: 4px 0; background: #fafafa; }
+.slottitle { display: flex; align-items: center; gap: 6px; font-size: 16px; }
+.slottitle span { font-weight: bold; margin-right: auto; }
+.slotnote { color: #c33; margin-left: 8px; font-size: 16px; }
+.slothint { padding: 40px; color: #777; text-align: center; }
+.dotstacks { width: 3.2em; margin-left: 2px; }
+.targetrow { margin: 4px 0 6px 0; font-size: 16px; }
+.targetrow select { max-width: 340px; margin-right: 4px; }
+.armorbox { width: 4.5em; }
+.targetinfo { margin-left: 8px; opacity: 0.75; }
+
+.typetag { display: inline-block; margin: 2px 4px 2px 0; padding: 1px 2px 1px 8px; border: 1px solid #4CAF50; border-radius: 12px; background: #e8f5e9; white-space: nowrap; }
+.typetag button { border: none; background: none; cursor: pointer; padding: 0 4px; margin: 0; font-size: 16px; color: #555; }
+.typetag button:hover { color: #c33; }
+.typepick { width: 11em; }

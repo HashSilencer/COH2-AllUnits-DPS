@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<html>
+<head>
+<title>CoH2 All Units DPS</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">google.charts.load('current', {'packages':['corechart']});</script>
+<script type="text/javascript" src="site_data.js"></script>
+<script type="text/javascript" src="engine.js"></script>
+<script type="text/javascript" src="pages.js"></script>
+</head>
+<body>
+<div id="container" class="layout">
+	<div class="dropdown">
+		<button class="dropbtn" id="FactionButton">Faction</button>
+		<div class="dropdown-content" id="factionlist"></div>
+	</div>
+	<div id="unitbuttons" class="topmenu"></div>
+	<div class="topmenu">
+		<div class="dropdown">
+			<button class="dropbtn" id="covertext">Cover</button>
+			<div class="dropdown-content">
+				<a href="#" onclick="changecover(0); return false;">Default Cover</a>
+				<a href="#" onclick="changecover(1); return false;">Light Cover</a>
+				<a href="#" onclick="changecover(2); return false;">Heavy Cover</a>
+				<a href="#" onclick="changecover(3); return false;">Garrison Cover</a>
+				<a href="#" onclick="changecover(4); return false;">Negative Cover</a>
+			</div>
+		</div>
+	</div>
+	<div class="topmenu">
+		<div class="dropdown">
+			<button class="dropbtn">Info</button>
+			<div class="dropdown-content">
+				<a href="https://steamcommunity.com/sharedfiles/filedetails/?id=350031348">All Units Workshop Page</a>
+				<a href="https://discord.gg/ZswB4tzMN8">All Units Discord</a>
+				<a id="generated"></a>
+			</div>
+		</div>
+	</div>
+	<div id="modpanel" class="modpanel"></div>
+	<div id="curve_chart"></div>
+	<div id="content" class="content"></div>
+</div>
+</body>
+</html>
