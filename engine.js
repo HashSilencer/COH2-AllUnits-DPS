@@ -365,8 +365,51 @@ function fullRangeDPS(unit, windex, moving, forcedps)
 	return DPS;
 }
 
+// The game raises max to min when the data has max < min (RelicCoH2 weapon loader), then rolls
+// uniformly between them, so the average is the expected value.
 function Minmax(minmax){
-   return (minmax.min+minmax.max)/2
+   return (minmax.min+Math.max(minmax.min,minmax.max))/2
+}
+
+// wind_up / wind_down are stored as whole ticks: (int)(seconds * 8), truncated.
+function windTime(seconds){
+	return Math.floor(seconds*8 + 1e-4)/8;
+}
+
+// Expected burst length (seconds) and shots per burst, as the game runs it (FUN_141458030 /
+// FUN_141458440). Burst seconds are rolled uniformly in [min, max] x multiplier and rounded to
+// ticks at random (n or n+1, so the mean is unchanged), at least 1 tick. Rate of fire is rolled
+// uniformly per burst, in shots per tick. Each tick fires floor(rof + carry) and keeps the
+// fraction; the carry persists across bursts when rof >= 1 per tick, and restarts at 1 - rof
+// when rof < 1 (so the first tick always fires).
+function burstExpectation(weapon, range, moving){
+	if(!weapon.burst.can_burst)
+		return {time: 0.125, shots: 1};
+	var durmod = Rangemodifier(range, weapon.burst.duration_multiplier, weapon.range);
+	if(moving)
+		durmod *= weapon.moving.burst_multiplier;
+	var rofmod = Rangemodifier(range, weapon.burst.rate_of_fire_multiplier, weapon.range);
+	var dmin = weapon.burst.duration.min, dmax = Math.max(dmin, weapon.burst.duration.max);
+	var rmin = weapon.burst.rate_of_fire.min, rmax = Math.max(rmin, weapon.burst.rate_of_fire.max);
+	var N = 32, ticks = 0, shots = 0;
+	for(var i=0;i<N;i++)
+	{
+		var x = (dmin + (dmax-dmin)*(i+0.5)/N) * durmod * 8;
+		var n = Math.floor(x), p = x - n;
+		var outcomes = [[Math.max(1, n), 1-p], [Math.max(1, n+1), p]];
+		for(var j=0;j<N;j++)
+		{
+			var r = (rmin + (rmax-rmin)*(j+0.5)/N) / 8 * rofmod;
+			outcomes.forEach(function(o){
+				var s = r >= 1 ? o[0]*r : Math.floor(1 - r + o[0]*r + 1e-9);
+				shots += s * o[1];
+				ticks += o[0] * o[1];
+			});
+		}
+	}
+	ticks /= N*N;
+	shots /= N*N;
+	return {time: ticks*0.125, shots: shots};
 }
 
 function getDamage(weapon){
@@ -384,14 +427,8 @@ function penetrate(pen){
 function DPSTime(weapon, range, moving)
 {
 	var time = 0;
-	var bursttime = 0.125;
-	if(weapon.burst.can_burst)
-	{
-		var burstdurationmod = Rangemodifier(range, weapon.burst.duration_multiplier, weapon.range); 
-		if(moving)
-			burstdurationmod *= weapon.moving.burst_multiplier;
-		bursttime = 0.125* Math.ceil((Minmax(weapon.burst.duration)*burstdurationmod)/0.125);
-	}
+	var bursttime = burstExpectation(weapon, range, moving).time;
+	var windup = windTime(weapon.fire.wind_up), winddown = windTime(weapon.fire.wind_down);
 	var reloadfreq = Minmax(weapon.reload.frequency);
 	var aimmodifier = Rangemodifier(range, weapon.aim.aim_time_multiplier, weapon.range); 
 	var fireaim =  Minmax(weapon.aim.fire_aim_time) * aimmodifier;
@@ -400,23 +437,34 @@ function DPSTime(weapon, range, moving)
 	var reloadduration = Minmax(weapon.reload.duration) * Rangemodifier(range, weapon.reload.duration_multiplier, weapon.range);
 	if(moving)
 		cooldown *= weapon.moving.cooldown_multiplier;
-	time += bursttime+fireaim+cooldown+weapon.fire.wind_up+weapon.fire.wind_down;
+	time += bursttime+fireaim+cooldown+windup+winddown;
 	time *= reloadfreq;
-	time += readyaim+reloadduration+bursttime+weapon.fire.wind_up+weapon.fire.wind_down;
-	//Cooldown applied if only one shot per reload. Ignore ready aim for single fire weapons
+	// Ready aim is only the first aim from idle (see FirstShotDelay); after a reload it is fire aim.
+	time += fireaim+reloadduration+bursttime+windup+winddown;
+	//Cooldown applied if only one shot per reload.
 	if(weapon.reload.frequency.max == 0)
 	{
 		time += cooldown;
-		time -= readyaim;
-		time += fireaim;
-	}		
+	}
 	return time;
+}
+
+// Seconds from idle to the first shot: ready aim (times the range's aim multiplier) plus wind up.
+// Not part of the DPS above.
+function FirstShotDelay(weapon, range)
+{
+	var aimmodifier = Rangemodifier(range, weapon.aim.aim_time_multiplier, weapon.range);
+	return Minmax(weapon.aim.ready_aim_time) * aimmodifier + windTime(weapon.fire.wind_up);
 }
 
 function getAccuracy(weapon, range, moving,  noclip)
 {
 	var accumod = Rangemodifier(range, weapon.accuracy, weapon.range);
 	var accuracy = accumod*weapon.cover_table[cover_table_keys[currentcover]].accuracy_multiplier;
+	// Not a game rule: the game's hit roll (RelicCoH2 FUN_141462930) has no "accuracy >= 3 means 0".
+	// Kept because it screens out projectile weapons (panzerfaust, AT grenades, ramming) whose large
+	// accuracy values go through scatter in the game, not a plain hit roll. Revisit once the
+	// projectile/scatter path is traced.
 	if(accuracy == 0 || (accuracy >= 3 && !noclip))
 	   return 0;
 	accuracy *= target_size;
@@ -429,39 +477,7 @@ function getAccuracy(weapon, range, moving,  noclip)
 
 function burstduration(weapon, range, moving)
 {
-	var burst = 1;
-	if(!weapon.burst.can_burst)
-	{
-		return burst;
-	}
-	var burstdurationmod = Rangemodifier(range, weapon.burst.duration_multiplier, weapon.range); 
-	if(moving)
-		burstdurationmod *= weapon.moving.burst_multiplier;
-	var burstmin = weapon.burst.duration.min;
-	var burstmax = weapon.burst.duration.max;
-	if(burstmin == burstmax)
-		{
-			var burstbase = Minmax(weapon.burst.duration) * burstdurationmod * Minmax(weapon.burst.rate_of_fire) * Rangemodifier(range, weapon.burst.rate_of_fire_multiplier, weapon.range);
-			burst = Math.floor(burstbase);
-			if(burst == 0)
-				burst = 1;
-		}
-	else
-		{
-			var burstresult = [];
-			var count = 0;
-			for(var i=burstmin;i<=burstmax;i=i+0.125)
-			{
-				burstresult[count] = Math.floor(i * burstdurationmod * Minmax(weapon.burst.rate_of_fire) * Rangemodifier(range, weapon.burst.rate_of_fire_multiplier, weapon.range));
-				if(burstresult[count] == 0)
-					burstresult[count] = 1;
-				count++;
-			}
-			var sum = burstresult.reduce(function(a, b) { return a+b; });
-			var avg = sum/burstresult.length;
-			burst = avg;
-		}
-	return burst;			
+	return burstExpectation(weapon, range, moving).shots;
 }
 
 function numberofshots(weapon, range, moving){
@@ -495,6 +511,10 @@ function FillRangetable(ranges){
 function Rangemodifier(range, multipliers, ranges){
 	if(ranges.distance.near == -1 || ranges.distance.mid == -1 || ranges.distance.far == -1)
 		ranges = FillRangetable(ranges);
+	// Any near/mid/far group (accuracy, penetration, multipliers): the game sets mid = -1 to
+	// (near + far) / 2 when near and far are set (RelicCoH2 FUN_14145e580).
+	if(multipliers.mid == -1 && multipliers.near != -1 && multipliers.far != -1)
+		multipliers = {near: multipliers.near, mid: (multipliers.near+multipliers.far)/2, far: multipliers.far};
 	if(range > ranges.max || range < ranges.min)
 		return 0;
 	if(range <= ranges.distance.near)
@@ -831,6 +851,9 @@ dtgeneratorminmax(dl, "Cooldown time mid",weapon.cooldown.duration, weapon.coold
 dtgeneratorminmax(dl, "Cooldown time far",weapon.cooldown.duration, weapon.cooldown.duration_multiplier, weapon.range.distance.far, weapon);
 dtgenerator(dl, "Wind up", weapon.fire.wind_up);
 dtgenerator(dl, "Wind down", weapon.fire.wind_down);
+dtgenerator(dl, "First shot delay near (s)", round(FirstShotDelay(weapon, weapon.range.distance.near),2));
+dtgenerator(dl, "First shot delay mid (s)", round(FirstShotDelay(weapon, weapon.range.distance.mid),2));
+dtgenerator(dl, "First shot delay far (s)", round(FirstShotDelay(weapon, weapon.range.distance.far),2));
 
 }
 
